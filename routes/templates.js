@@ -82,4 +82,19 @@ router.put('/:id', async (req, res) => {
   res.json(rows[0]);
 });
 
+router.delete('/:id', async (req, res) => {
+  const { rows: [existing] } = await pool.query('SELECT * FROM templates WHERE id = $1', [req.params.id]);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+
+  // Soft-check: warn if runs exist, but allow delete
+  const { rows: runs } = await pool.query('SELECT id FROM runs WHERE template_id = $1 LIMIT 1', [req.params.id]);
+  if (runs.length > 0) {
+    // Nullify template reference rather than cascade-delete run history
+    await pool.query('UPDATE runs SET template_id = NULL WHERE template_id = $1', [req.params.id]);
+  }
+
+  await pool.query('DELETE FROM templates WHERE id = $1', [req.params.id]);
+  res.json({ deleted: true, id: parseInt(req.params.id) });
+});
+
 module.exports = router;

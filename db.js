@@ -1,7 +1,10 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
 async function initDb() {
   await pool.query(`
@@ -40,7 +43,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS runs (
       id SERIAL PRIMARY KEY,
-      template_id INTEGER NOT NULL REFERENCES templates(id),
+      template_id INTEGER REFERENCES templates(id) ON DELETE SET NULL,
       template_version INTEGER NOT NULL,
       persona_id TEXT NOT NULL REFERENCES personas(id),
       intensity TEXT NOT NULL DEFAULT 'aggrieved',
@@ -96,7 +99,7 @@ async function initDb() {
     );
   `);
 
-  // Migrate existing evaluations table to new schema (idempotent)
+  // Idempotent migrations
   await pool.query(`
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS reply_classification JSONB;
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS dimensions JSONB;
@@ -104,6 +107,7 @@ async function initDb() {
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS summary TEXT;
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS suggested_fix TEXT;
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS notes TEXT;
+    ALTER TABLE runs ALTER COLUMN template_id DROP NOT NULL;
   `);
 
   console.log('DB schema ready');
