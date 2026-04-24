@@ -1,12 +1,8 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
-// Strip sslmode from connection string — pg-connection-string overrides our ssl config otherwise
-const connectionString = process.env.DATABASE_URL?.replace(/[?&]sslmode=[^&]*/g, '').replace(/[?&]$/, '');
-
 const pool = new Pool({
-  connectionString,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionString: process.env.DATABASE_URL,
 });
 
 async function initDb() {
