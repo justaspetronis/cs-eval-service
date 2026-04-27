@@ -10,9 +10,10 @@ const EVAL_FIELDS = `e.overall_score, e.verdict, e.reply_classification, e.dimen
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT r.*, t.name as template_name, p.name as persona_name, p.archetype_label,
-           ${EVAL_FIELDS}
+           ${EVAL_FIELDS},
+           (SELECT decision FROM human_reviews WHERE evaluation_id = e.id ORDER BY created_at DESC LIMIT 1) as review_decision
     FROM runs r
-    JOIN templates t ON t.id = r.template_id
+    LEFT JOIN templates t ON t.id = r.template_id
     JOIN personas p ON p.id = r.persona_id
     LEFT JOIN evaluations e ON e.run_id = r.id
     ORDER BY r.created_at DESC
