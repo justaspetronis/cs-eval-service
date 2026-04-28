@@ -107,6 +107,7 @@ async function initDb() {
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS suggested_fix TEXT;
     ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS notes TEXT;
     ALTER TABLE runs ALTER COLUMN template_id DROP NOT NULL;
+    ALTER TABLE personas ADD COLUMN IF NOT EXISTS default_intensity TEXT DEFAULT 'aggrieved';
   `);
 
   console.log('DB schema ready');

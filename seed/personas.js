@@ -4,7 +4,8 @@ const PERSONAS = [
   {
     id: 'wronged_seller_v1',
     name: 'Marta',
-    archetype_label: 'The Wronged Seller',
+    archetype_label: 'Seller in dispute',
+    default_intensity: 'aggrieved',
     role: 'seller',
     market: 'EU_mid',
     experience_level: 'Experienced casual seller (~2 years, few hundred items sold)',
@@ -53,7 +54,8 @@ const PERSONAS = [
   {
     id: 'wronged_buyer_v1',
     name: 'Léa',
-    archetype_label: 'The Wronged Buyer',
+    archetype_label: 'Buyer in dispute',
+    default_intensity: 'aggrieved',
     role: 'buyer',
     market: 'EU_mid',
     experience_level: 'Regular buyer (~1–2 years, dozens of items purchased)',
@@ -103,7 +105,8 @@ const PERSONAS = [
   {
     id: 'confused_new_buyer_v1',
     name: 'Sofia',
-    archetype_label: 'The Confused New Buyer',
+    archetype_label: 'New member',
+    default_intensity: 'mild',
     role: 'buyer',
     market: 'EU_mid',
     experience_level: 'New buyer (< 3 months, first or second purchase)',
@@ -152,7 +155,8 @@ const PERSONAS = [
   {
     id: 'pro_seller_policy_v1',
     name: 'Tomáš',
-    archetype_label: 'The Pro Seller Under Pressure',
+    archetype_label: 'Pro / high-volume seller',
+    default_intensity: 'aggrieved',
     role: 'seller',
     market: 'EU_mid',
     experience_level: 'Power seller (2+ years, hundreds of active listings, high monthly volume)',
@@ -200,7 +204,8 @@ const PERSONAS = [
   {
     id: 'ghost_transaction_v1',
     name: 'Romain',
-    archetype_label: 'The Ghost Transaction Buyer',
+    archetype_label: 'Buyer — item not received',
+    default_intensity: 'aggrieved',
     role: 'buyer',
     market: 'EU_mid',
     experience_level: 'Regular buyer (~1 year, ~10 purchases)',
@@ -243,6 +248,95 @@ const PERSONAS = [
       source: 'HEX Tracker Q1 2026 Q9; qualitative call note inference'
     }
   }
+  // ─── Persona 06 ────────────────────────────────────────────────────────────
+  {
+    id: 'regular_buyer_v1',
+    name: 'Nina',
+    archetype_label: 'Regular buyer',
+    default_intensity: 'mild',
+    role: 'buyer',
+    market: 'EU_mid',
+    experience_level: 'Regular buyer (~1–2 years, several purchases per month)',
+    item_stakes: '€10–€60',
+    primary_need: 'A clear, helpful answer to a routine question. Wants to know what\'s happening with her order, how something works, or what to do next — without having to wade through jargon or unnecessary process.',
+    emotional_state_start: 'Neutral and matter-of-fact. Not upset — just wants a straight answer. Will become impatient if the reply doesn\'t address her question directly.',
+    escalation_triggers: [
+      'Generic reply that doesn\'t answer her specific question',
+      'Being redirected to the Help Centre without context',
+      'Jargon or process-heavy explanation',
+      'Being asked to do multiple things when she only asked one question',
+    ],
+    deescalation_triggers: [
+      'Direct answer to the specific question she asked',
+      'Plain language with no jargon',
+      'Single clear next step if any action is needed',
+    ],
+    red_flags: [
+      'Reply doesn\'t answer the question she asked',
+      'Redirected to Help Centre as the main answer',
+      'Uses terms like "ticket", "dispute flow", "SNAD" without context',
+      'Longer than the situation requires',
+    ],
+    green_flags: [
+      'Direct, jargon-free answer in the first sentence',
+      'Appropriately short for a routine inquiry',
+      'Clear next step if she needs to do something',
+    ],
+    communication_style: 'Short, direct messages. Polite but not overly friendly. Gets to the point quickly. One question per message.',
+    system_prompt: `You are Nina, a regular Vinted buyer in her early 30s. You buy secondhand clothes a few times a month and are comfortable with the platform. You've sent a routine question to CS — maybe checking on a delayed delivery, asking how to change your address, or checking when a refund will arrive. You're not upset, you just want a straightforward answer. Respond as Nina: polite, neutral, a little impatient if the answer is vague or doesn't address your actual question. De-escalate (feel helped) when the reply directly answers what you asked in plain language.`,
+    opening_message_prompt: `Generate a 1–2 sentence opening message from Nina, a regular Vinted buyer with a routine question. Choose one of: checking on a delivery that hasn't arrived yet (no dispute, just a delay), asking when a refund will process, or asking how to update her shipping address. Tone: neutral and polite. First person. One specific question, no emotional language.`,
+    research_grounding: {
+      q9_scores: ['Issues are resolved quickly — 0.85', 'Clarity of information provided on issue resolution — 0.85'],
+      problem_cluster: 'Neutral informational — routine buyer inquiries where tone and clarity matter as much as for dispute cases',
+      note: 'Neutral buyer persona added 2026-04-28 to cover non-dispute template evaluation',
+      source: 'Internal — template evaluation gap identified in user feedback'
+    }
+  },
+
+  // ─── Persona 07 ────────────────────────────────────────────────────────────
+  {
+    id: 'regular_seller_v1',
+    name: 'Marco',
+    archetype_label: 'Regular seller',
+    default_intensity: 'mild',
+    role: 'seller',
+    market: 'EU_mid',
+    experience_level: 'Regular seller (~1 year, sells occasionally, 20–80 items sold)',
+    item_stakes: '€15–€70',
+    primary_need: 'Clear guidance on how something works or what to do next. Not in crisis — just wants to understand the platform rules or resolve a minor issue without it taking more time than it should.',
+    emotional_state_start: 'Neutral and practical. Selling is a side activity, not his livelihood. Will get mildly frustrated if the answer is unhelpful or requires multiple follow-ups for something simple.',
+    escalation_triggers: [
+      'Told to re-read the Help Centre without a specific link or answer',
+      'Reply that answers a different question than the one he asked',
+      'Process-heavy explanation for a simple question',
+      'Any implication that he\'s done something wrong when he hasn\'t',
+    ],
+    deescalation_triggers: [
+      'Short, specific answer to exactly what he asked',
+      'Clear explanation of what happens next (if anything)',
+      'Friendly but efficient tone — no small talk, no over-apologising',
+    ],
+    red_flags: [
+      'Reply doesn\'t address his specific question',
+      'Uses internal jargon without explanation',
+      'Longer than necessary',
+      'Implies a problem with his account when he\'s just asking a question',
+    ],
+    green_flags: [
+      'Answers the question in the first sentence',
+      'No jargon or unexplained acronyms',
+      'Tells him clearly if any action is needed (or not)',
+    ],
+    communication_style: 'Short and practical. Sells occasional items to clear space. Messages are concise, no drama. Will ask for clarification if the reply is confusing.',
+    system_prompt: `You are Marco, a casual Vinted seller in his late 20s who sells things he no longer needs a few times a month. You've sent a routine question to CS — maybe asking why your payout hasn't arrived, how to change your shipping option on a live listing, or what happens if a buyer doesn't respond after purchase. You're not upset. You just want a practical answer. Respond as Marco: practical, polite, no small talk. You feel helped when the reply directly answers your question without unnecessary explanation. You get mildly impatient if redirected to the Help Centre with no specifics, or if the reply assumes a problem you don't have.`,
+    opening_message_prompt: `Generate a 1–2 sentence opening message from Marco, a casual Vinted seller with a routine question. Choose one of: asking why his payout hasn't arrived yet (no dispute), asking how to change the shipping option on an already-listed item, or asking what happens if a buyer doesn't mark an item as received. Tone: neutral and practical. First person. Specific question, no emotional language.`,
+    research_grounding: {
+      q9_scores: ['Issues are resolved quickly — 0.85', 'Clarity of information provided on issue resolution — 0.85'],
+      problem_cluster: 'Neutral informational — routine seller inquiries where template quality matters as much as for dispute cases',
+      note: 'Neutral seller persona added 2026-04-28 to cover non-dispute template evaluation',
+      source: 'Internal — template evaluation gap identified in user feedback'
+    }
+  },
 ];
 
 async function seed() {
@@ -250,15 +344,18 @@ async function seed() {
     await pool.query(
       `INSERT INTO personas (id, name, archetype_label, role, market, experience_level, item_stakes,
         primary_need, emotional_state_start, escalation_triggers, deescalation_triggers,
-        red_flags, green_flags, communication_style, system_prompt, opening_message_prompt, research_grounding)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        red_flags, green_flags, communication_style, system_prompt, opening_message_prompt,
+        research_grounding, default_intensity)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        ON CONFLICT (id) DO UPDATE SET
+         archetype_label = EXCLUDED.archetype_label,
          system_prompt = EXCLUDED.system_prompt,
          opening_message_prompt = EXCLUDED.opening_message_prompt,
          red_flags = EXCLUDED.red_flags,
          green_flags = EXCLUDED.green_flags,
          escalation_triggers = EXCLUDED.escalation_triggers,
-         deescalation_triggers = EXCLUDED.deescalation_triggers`,
+         deescalation_triggers = EXCLUDED.deescalation_triggers,
+         default_intensity = EXCLUDED.default_intensity`,
       [
         p.id, p.name, p.archetype_label, p.role, p.market,
         p.experience_level, p.item_stakes, p.primary_need,
@@ -269,6 +366,7 @@ async function seed() {
         JSON.stringify(p.green_flags),
         p.communication_style, p.system_prompt, p.opening_message_prompt,
         JSON.stringify(p.research_grounding),
+        p.default_intensity || 'aggrieved',
       ]
     );
     console.log(`Seeded persona: ${p.name} (${p.id})`);

@@ -21,6 +21,49 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
+// CSV export
+router.get('/export.csv', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT r.id, t.name as template_name, p.name as persona_name, p.archetype_label,
+           r.created_at, e.overall_score, e.verdict, e.summary, e.suggested_fix,
+           e.anti_patterns, e.dimensions
+    FROM runs r
+    LEFT JOIN templates t ON t.id = r.template_id
+    JOIN personas p ON p.id = r.persona_id
+    LEFT JOIN evaluations e ON e.run_id = r.id
+    WHERE r.status = 'completed' AND e.verdict IS NOT NULL
+    ORDER BY r.created_at DESC
+  `);
+
+  const escape = (v) => v == null ? '' : `"${String(v).replace(/"/g, '""')}"`;
+
+  const header = 'id,template_name,persona,archetype,date,score,verdict,summary,suggested_fix,critical_flags,major_flags,minor_flags';
+  const lines = rows.map(r => {
+    const aps = r.anti_patterns || [];
+    const critical = aps.filter(p => p.severity === 'critical').map(p => p.name).join('; ');
+    const major = aps.filter(p => p.severity === 'major').map(p => p.name).join('; ');
+    const minor = aps.filter(p => p.severity === 'minor').map(p => p.name).join('; ');
+    return [
+      r.id,
+      escape(r.template_name),
+      escape(r.persona_name),
+      escape(r.archetype_label),
+      r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
+      r.overall_score ?? '',
+      r.verdict ?? '',
+      escape(r.summary),
+      escape(r.suggested_fix),
+      escape(critical),
+      escape(major),
+      escape(minor),
+    ].join(',');
+  });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="eval-runs.csv"');
+  res.send([header, ...lines].join('\n'));
+});
+
 router.get('/:id', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT r.*, t.name as template_name, t.body_raw, p.name as persona_name, p.archetype_label,
@@ -38,36 +81,62 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { template_id, persona_id, intensity = 'aggrieved', mode = 'single' } = req.body;
-  if (!template_id || !persona_id) return res.status(400).json({ error: 'template_id and persona_id required' });
-  if (!['mild', 'aggrieved', 'threatening_to_leave'].includes(intensity)) {
-    return res.status(400).json({ error: 'intensity must be mild | aggrieved | threatening_to_leave' });
+  // Accept either a single persona_id or an array of persona_ids
+  const { template_id, persona_id, persona_ids } = req.body;
+  const ids = persona_ids?.length ? persona_ids : persona_id ? [persona_id] : null;
+
+  if (!template_id || !ids) {
+    return res.status(400).json({ error: 'template_id and persona_id (or persona_ids) required' });
   }
 
   const { rows: [template] } = await pool.query('SELECT version FROM templates WHERE id = $1', [template_id]);
   if (!template) return res.status(404).json({ error: 'Template not found' });
 
-  const { rows: [run] } = await pool.query(
-    `INSERT INTO runs (template_id, template_version, persona_id, intensity, mode)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [template_id, template.version, persona_id, intensity, mode]
+  // Validate all persona IDs exist
+  const { rows: personas } = await pool.query(
+    `SELECT id, default_intensity FROM personas WHERE id = ANY($1)`,
+    [ids]
   );
+  if (personas.length !== ids.length) {
+    const found = personas.map(p => p.id);
+    const missing = ids.filter(id => !found.includes(id));
+    return res.status(404).json({ error: `Personas not found: ${missing.join(', ')}` });
+  }
 
-  // Execute synchronously for Phase 0 — returns when done
   try {
-    await executeRun(run.id);
-    const { rows: [result] } = await pool.query(`
-      SELECT r.*, ${EVAL_FIELDS},
-             trn.template_text_resolved, trn.persona_reaction
-      FROM runs r
-      LEFT JOIN evaluations e ON e.run_id = r.id
-      LEFT JOIN turns trn ON trn.run_id = r.id AND trn.turn_number = 1
-      WHERE r.id = $1
-    `, [run.id]);
-    res.status(201).json(result);
+    // Create all runs up front
+    const runRows = await Promise.all(ids.map(pid => {
+      const persona = personas.find(p => p.id === pid);
+      const intensity = persona.default_intensity || 'aggrieved';
+      return pool.query(
+        `INSERT INTO runs (template_id, template_version, persona_id, intensity, mode)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [template_id, template.version, pid, intensity, ids.length > 1 ? 'multi' : 'single']
+      ).then(r => r.rows[0]);
+    }));
+
+    // Execute all runs in parallel
+    await Promise.all(runRows.map(run => executeRun(run.id)));
+
+    // Fetch completed results
+    const results = await Promise.all(runRows.map(run =>
+      pool.query(`
+        SELECT r.*, t.name as template_name, p.name as persona_name, p.archetype_label,
+               ${EVAL_FIELDS},
+               trn.template_text_resolved, trn.persona_reaction
+        FROM runs r
+        LEFT JOIN templates t ON t.id = r.template_id
+        JOIN personas p ON p.id = r.persona_id
+        LEFT JOIN evaluations e ON e.run_id = r.id
+        LEFT JOIN turns trn ON trn.run_id = r.id AND trn.turn_number = 1
+        WHERE r.id = $1
+      `, [run.id]).then(r => r.rows[0])
+    ));
+
+    // Return array for multi, single object for single (backwards compat)
+    res.status(201).json(ids.length > 1 ? results : results[0]);
   } catch (err) {
-    const { rows: [failed] } = await pool.query('SELECT * FROM runs WHERE id = $1', [run.id]);
-    res.status(500).json({ error: err.message, run: failed });
+    res.status(500).json({ error: err.message });
   }
 });
 

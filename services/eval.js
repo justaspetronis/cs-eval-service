@@ -82,12 +82,15 @@ async function executeRun(runId) {
   const { rows: [persona] } = await pool.query('SELECT * FROM personas WHERE id = $1', [run.persona_id]);
   const { rows: [template] } = await pool.query('SELECT * FROM templates WHERE id = $1', [run.template_id]);
 
+  // Use persona's default intensity if set, falling back to run's stored intensity
+  const intensity = persona.default_intensity || run.intensity || 'aggrieved';
+
   await pool.query('UPDATE runs SET status = $1 WHERE id = $2', ['running', runId]);
 
   try {
     const resolvedTemplate = await resolveVariables(template.body_raw, persona);
-    const openingMessage = await generateOpeningMessage(persona, run.intensity);
-    const personaReaction = await simulatePersonaReaction(persona, run.intensity, openingMessage, resolvedTemplate);
+    const openingMessage = await generateOpeningMessage(persona, intensity);
+    const personaReaction = await simulatePersonaReaction(persona, intensity, openingMessage, resolvedTemplate);
 
     await pool.query(
       `INSERT INTO turns (run_id, turn_number, template_text_resolved, persona_reaction)
