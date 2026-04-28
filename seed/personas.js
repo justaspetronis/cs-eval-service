@@ -247,7 +247,7 @@ const PERSONAS = [
       note: '"Ghost delivery" scenarios appear in qualitative call notes as a distinct frustration cluster; not separately scored in Q1 2026 quant wave',
       source: 'HEX Tracker Q1 2026 Q9; qualitative call note inference'
     }
-  }
+  },
   // ─── Persona 06 ────────────────────────────────────────────────────────────
   {
     id: 'regular_buyer_v1',
