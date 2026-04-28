@@ -21,6 +21,15 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
+// Delete all runs (and cascaded evaluations/turns/reviews) — full reset
+router.delete('/all', async (req, res) => {
+  await pool.query('DELETE FROM human_reviews');
+  await pool.query('DELETE FROM evaluations');
+  await pool.query('DELETE FROM turns');
+  await pool.query('DELETE FROM runs');
+  res.json({ deleted: true });
+});
+
 // CSV export
 router.get('/export.csv', async (req, res) => {
   const { rows } = await pool.query(`
